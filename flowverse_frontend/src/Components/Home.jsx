@@ -26,7 +26,6 @@ const Homepage = () => {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sample problems data
   const problems = [
     { id: 1, title: 'Two Sum', difficulty: 'Easy', category: 'Array', solved: true, likes: 4500, submissions: 2500000, premium: false, acceptance: '50%' },
     { id: 2, title: 'Reverse Linked List', difficulty: 'Easy', category: 'Linked List', solved: false, likes: 3200, submissions: 1800000, premium: false, acceptance: '65%' },
