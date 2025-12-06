@@ -1,11 +1,12 @@
 // Components/Login.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaGoogle, FaGithub, FaArrowLeft } from 'react-icons/fa';
-
+import { loginUser } from '../authSlice.jsx';
+import { useDispatch, useSelector } from 'react-redux';
 
 const loginSchema = z.object({
   email: z
@@ -21,16 +22,17 @@ const loginSchema = z.object({
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch(); 
+  
+  // Use the correct state structure from your authSlice
+  const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth); 
 
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
-    reset,
   } = useForm({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
@@ -40,31 +42,14 @@ const Login = () => {
     }
   });
 
-  const onSubmit = async (data) => {
-    setIsLoading(true);
-    setIsSubmitted(false);
-    
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Login submitted successfully:', data);
-      setIsSubmitted(true);
-      
-      // Show success message for 2 seconds then redirect
-      setTimeout(() => {
-        setIsSubmitted(false);
-        setIsLoading(false);
-        reset();
-        navigate('/'); // Redirect to home page after successful login
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      setIsLoading(false);
-      // Simulate error message
-      alert('Login failed. Please check your credentials and try again.');
+  useEffect(() => {
+    if(isAuthenticated){
+      navigate('/');
     }
+  }, [isAuthenticated, navigate]);
+
+  const onSubmit = async (data) => {
+    dispatch(loginUser(data));
   };
 
   const handleBackToHome = () => {
@@ -78,13 +63,11 @@ const Login = () => {
   };
 
   const handleForgotPassword = () => {
-    navigate('/forgot-password'); // You can create this route later
-    // or
-    alert('Forgot password functionality would open a modal or redirect');
+    navigate('/forgot-password');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen  from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button
@@ -106,39 +89,19 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Success Message */}
-          {isSubmitted && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-green-900">
-                    Login successful! Redirecting...
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Social Login Buttons */}
           <div className="mb-8">
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleSocialLogin('Google')}
                 className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={isLoading}
               >
-                <FaGoogle className="w-5 h-5  text-gray-800 mr-2" />
+                <FaGoogle className="w-5 h-5 text-gray-800 mr-2" />
                 <span className="text-sm text-gray-900 font-medium">Google</span>
               </button>
               <button
                 onClick={() => handleSocialLogin('GitHub')}
                 className="flex items-center justify-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={isLoading}
               >
                 <FaGithub className="w-5 h-5 text-gray-800 mr-2" />
                 <span className="text-sm font-medium text-gray-900">GitHub</span>
@@ -154,6 +117,15 @@ const Login = () => {
               </div>
             </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">
+                {typeof error === 'string' ? error : 'Login failed. Please try again.'}
+              </p>
+            </div>
+          )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -171,7 +143,6 @@ const Login = () => {
                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                 } focus:outline-none focus:ring-2 transition-colors`}
                 placeholder="Enter your email address"
-                disabled={isLoading}
               />
               {errors.email && (
                 <p className="mt-2 text-sm text-red-700 flex items-center">
@@ -193,7 +164,6 @@ const Login = () => {
                   type="button"
                   onClick={handleForgotPassword}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  disabled={isLoading}
                 >
                   Forgot password?
                 </button>
@@ -208,13 +178,11 @@ const Login = () => {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   } focus:outline-none focus:ring-2 transition-colors pr-12`}
                   placeholder="Enter your password"
-                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-700 hover:text-gray-900"
-                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <FaEyeSlash className="w-5 h-5" />
@@ -241,7 +209,6 @@ const Login = () => {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                disabled={isLoading}
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                 Remember me
@@ -253,10 +220,10 @@ const Login = () => {
               type="submit"
               disabled={isLoading || !isValid}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                isLoading || !isValid
-                  ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-              }`}
+                (isLoading || !isValid) 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">

@@ -1,9 +1,11 @@
 // SignupForm.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom'; 
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser } from '../authSlice.jsx';
 
 // Create Zod validation schema
 const signupSchema = z.object({
@@ -35,14 +37,14 @@ const signupSchema = z.object({
 
 const SignupForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate(); 
+  const dispatch = useDispatch();
+  const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isValid },
-    reset,
+    formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(signupSchema),
     mode: 'onChange',
@@ -54,28 +56,14 @@ const SignupForm = () => {
     }
   });
 
-  const onSubmit = async (data) => {
-    // Simulate API call delay
-    setIsSubmitted(false);
-    
-    try {
-      // Here you would typically make an API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Form submitted successfully:', data);
-      setIsSubmitted(true);
-      
-      // Show success message for 3 seconds then redirect
-      setTimeout(() => {
-        setIsSubmitted(false);
-        reset();
-        navigate('/'); // Redirect to home page after successful signup
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('Signup failed. Please try again.');
+  useEffect(() => {
+    if(isAuthenticated) {
+      navigate('/');
     }
+  }, [isAuthenticated, navigate]);
+
+  const onSubmit = async (data) => {
+    dispatch(registerUser(data));
   };
 
   const togglePasswordVisibility = () => {
@@ -103,26 +91,26 @@ const SignupForm = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2"> {/* Changed to gray-900 */}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Create Account
             </h1>
-            <p className="text-gray-700"> {/* Changed to gray-700 */}
+            <p className="text-gray-700">
               Join our community and get started
             </p>
           </div>
 
-          {/* Success Message */}
-          {isSubmitted && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-green-900"> {/* Changed to green-900 */}
-                    Account created successfully! Check your email for verification.
+                  <p className="text-sm font-medium text-red-900">
+                    {typeof error === 'string' ? error : 'Registration failed. Please try again.'}
                   </p>
                 </div>
               </div>
@@ -133,7 +121,7 @@ const SignupForm = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* First Name Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2"> {/* Changed to gray-900 */}
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 First Name
               </label>
               <input
@@ -145,10 +133,10 @@ const SignupForm = () => {
                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                 } focus:outline-none focus:ring-2 transition-colors`}
                 placeholder="Enter your first name"
-                disabled={isSubmitting}
+                disabled={isLoading}
               />
               {errors.firstName && (
-                <p className="mt-2 text-sm text-red-700 flex items-center"> {/* Changed to red-700 */}
+                <p className="mt-2 text-sm text-red-700 flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -159,7 +147,7 @@ const SignupForm = () => {
 
             {/* Last Name Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2"> {/* Changed to gray-900 */}
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Last Name
               </label>
               <input
@@ -171,10 +159,10 @@ const SignupForm = () => {
                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                 } focus:outline-none focus:ring-2 transition-colors`}
                 placeholder="Enter your last name"
-                disabled={isSubmitting}
+                disabled={isLoading}
               />
               {errors.lastName && (
-                <p className="mt-2 text-sm text-red-700 flex items-center"> {/* Changed to red-700 */}
+                <p className="mt-2 text-sm text-red-700 flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -185,7 +173,7 @@ const SignupForm = () => {
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2"> {/* Changed to gray-900 */}
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Email Address
               </label>
               <input
@@ -197,10 +185,10 @@ const SignupForm = () => {
                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                 } focus:outline-none focus:ring-2 transition-colors`}
                 placeholder="Enter your email address"
-                disabled={isSubmitting}
+                disabled={isLoading}
               />
               {errors.email && (
-                <p className="mt-2 text-sm text-red-700 flex items-center"> {/* Changed to red-700 */}
+                <p className="mt-2 text-sm text-red-700 flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -211,7 +199,7 @@ const SignupForm = () => {
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2"> {/* Changed to gray-900 */}
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -224,13 +212,13 @@ const SignupForm = () => {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   } focus:outline-none focus:ring-2 transition-colors pr-12`}
                   placeholder="Create a strong password"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-700 hover:text-gray-900"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +233,7 @@ const SignupForm = () => {
                 </button>
               </div>
               {errors.password ? (
-                <p className="mt-2 text-sm text-red-700 flex items-center"> {/* Changed to red-700 */}
+                <p className="mt-2 text-sm text-red-700 flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -253,10 +241,10 @@ const SignupForm = () => {
                 </p>
               ) : (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-700 mb-2"> {/* Changed to gray-700 */}
+                  <p className="text-xs text-gray-700 mb-2">
                     Password requirements:
                   </p>
-                  <ul className="text-xs text-gray-700 space-y-1"> {/* Changed to gray-700 */}
+                  <ul className="text-xs text-gray-700 space-y-1">
                     <li className="flex items-center">
                       <svg className="w-4 h-4 mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -295,14 +283,14 @@ const SignupForm = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || !isValid}
+              disabled={isLoading || !isValid}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                isSubmitting || !isValid
+                isLoading || !isValid
                   ? 'bg-gray-300 cursor-not-allowed text-gray-500'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
               }`}
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -316,7 +304,7 @@ const SignupForm = () => {
             </button>
 
             {/* Terms and Conditions */}
-            <p className="text-xs text-center text-gray-700 mt-6"> {/* Changed to gray-700 */}
+            <p className="text-xs text-center text-gray-700 mt-6">
               By creating an account, you agree to our{' '}
               <a href="#" className="text-blue-700 hover:text-blue-900 font-medium">
                 Terms of Service
@@ -330,7 +318,7 @@ const SignupForm = () => {
 
           {/* Already have an account */}
           <div className="mt-8 pt-6 border-t border-gray-300 text-center">
-            <p className="text-gray-700"> {/* Changed to gray-700 */}
+            <p className="text-gray-700">
               Already have an account?{' '}
               <Link to="/login" className="font-medium text-blue-700 hover:text-blue-900">
                 Sign in

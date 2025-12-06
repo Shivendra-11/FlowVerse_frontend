@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axiosClient from './utils/axiosClient'
+import axiosClient from './utils/axiosClient.jsx';
 
 export const registerUser = createAsyncThunk(
   'auth/register',
@@ -12,7 +12,6 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
-
 
 export const loginUser = createAsyncThunk(
   'auth/login',
