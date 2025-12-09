@@ -27,7 +27,7 @@ const Login = () => {
   const dispatch = useDispatch(); 
   
   // Use the correct state structure from your authSlice
-  const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth); 
+  const { isAuthenticated, loading, error } = useSelector((state) => state.auth); 
 
   const {
     register,
@@ -43,13 +43,20 @@ const Login = () => {
   });
 
   useEffect(() => {
+    console.log('isAuthenticated changed:', isAuthenticated);
     if(isAuthenticated){
+      console.log('Redirecting to home...');
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
   const onSubmit = async (data) => {
-    dispatch(loginUser(data));
+    const userData = {
+      emailId: data.email,
+      password: data.password
+    }
+    console.log('Submitting login with:', userData);
+    dispatch(loginUser(userData));
   };
 
   const handleBackToHome = () => {
@@ -67,7 +74,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen  from-blue-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button
@@ -218,14 +225,14 @@ const Login = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !isValid}
+              disabled={loading || !isValid}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                (isLoading || !isValid) 
+                (loading || !isValid) 
                   ? 'bg-blue-400 cursor-not-allowed' 
                   : 'bg-blue-600 hover:bg-blue-700'
               } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
             >
-              {isLoading ? (
+              {loading ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

@@ -63,7 +63,14 @@ const SignupForm = () => {
   }, [isAuthenticated, navigate]);
 
   const onSubmit = async (data) => {
-    dispatch(registerUser(data));
+     const userData = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    emailId: data.email,  
+    password: data.password,
+  };
+
+    dispatch(registerUser(userData));
   };
 
   const togglePasswordVisibility = () => {
