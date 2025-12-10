@@ -59,53 +59,7 @@ const Homepage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
-      {/* Navigation Bar */}
-      <nav className="navbar bg-base-100 shadow-lg sticky top-0 z-50">
-        <div className="navbar-start">
-          <div className="dropdown">
-            <label tabIndex={0} className="btn btn-ghost lg:hidden">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
-              </svg>
-            </label>
-            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-              <li><Link to="/">Home</Link></li>
-              <li><a>Problems</a></li>
-              <li><a>About</a></li>
-              <li><Link to="/signup">Sign Up</Link></li>
-            </ul>
-          </div>
-          <div className="flex items-center space-x-2 ml-4">
-            <SiLeetcode className="text-3xl text-primary" />
-            <a className="btn btn-ghost text-xl font-bold">CodeMaster</a>
-          </div>
-        </div>
-        
-        <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal px-1">
-            <li><Link to="/" className="font-semibold">Home</Link></li>
-            <li><a className="font-semibold">Problems</a></li>
-            <li><a className="font-semibold">About</a></li>
-            <li><a className="font-semibold">Contest</a></li>
-            <li><a className="font-semibold">Discuss</a></li>
-          </ul>
-        </div>
-        
-        <div className="navbar-end space-x-2 mr-4">
-          <div className="hidden lg:flex">
-            <div className="form-control">
-              <input 
-                type="text" 
-                placeholder="Search problems..." 
-                className="input input-bordered w-64"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <Link to="/signup" className="btn btn-primary">Sign Up</Link>
-        </div>
-      </nav>
+  
 
       {/* Hero Section */}
       <div className="hero bg-gradient-to-r from-primary to-secondary text-primary-content min-h-[500px]">

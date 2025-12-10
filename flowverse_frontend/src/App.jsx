@@ -1,21 +1,27 @@
-import { Routes, Route, Navigate } from "react-router-dom"
-import Homepage from "./Components/Home"
-import Signup from "./Components/Signup"
-import Login from "./Components/Login"
-import { restoreAuth } from "./authSlice"; 
-import { useDispatch, useSelector } from "react-redux"
+import { Routes, Route, Navigate } from "react-router-dom";
+import Homepage from "./Components/Home";
+import Signup from "./Components/Signup";
+import Login from "./Components/Login";
+import Allproblem from "./Components/Allproblem";
+import AdminPanel from "./Components/Adminpanel";
+import ProblemPage from "./Components/Problem";
+import { restoreAuth } from "./authSlice";
+import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
+import MainLayout from "./Mainlayout";
+import SimpleEditor from "./Components/SimlpeEditor";
+// import { useSelector } from 'react-redux';
+
+
 
 function App() {
-  const { isAuthenticated, initialized } = useSelector((state) => state.auth); 
+  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Try to restore authentication from localStorage on app load
     dispatch(restoreAuth());
   }, [dispatch]);
 
-  // Show loading spinner while checking auth
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -26,11 +32,22 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={isAuthenticated ? <Homepage /> : <Navigate to="/login" />} />
+
+      {/* Public routes WITHOUT header */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={isAuthenticated ? <Navigate to="/" /> : <Signup />} />
+
+      {/* Protected routes WITH header */}
+      <Route element={<MainLayout />}>
+        <Route path="/" element={isAuthenticated ? <Homepage /> : <Navigate to="/login" />} />
+        <Route path="/admin/create-problem" element={isAuthenticated && user?.role==='admin' ? <AdminPanel /> : <Navigate to="/" />} />
+        <Route path="/problems" element={isAuthenticated ? <Allproblem /> : <Navigate to="/" />} />
+         <Route path="/editor" element={isAuthenticated ? <SimpleEditor /> : <Navigate to="/login" />} />
+         <Route path="/problem/:problemId" element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />}/>
+      </Route>
+
     </Routes>
-  )
+  );
 }
 
 export default App;

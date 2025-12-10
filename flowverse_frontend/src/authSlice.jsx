@@ -1,6 +1,47 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axiosClient from './utils/axiosClient.jsx';
 
+// Helper function to decode JWT token
+const decodeJWT = (token) => {
+  if (!token) return null;
+  
+  try {
+    // JWT format: header.payload.signature
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
+// Helper to create user object from token
+const createUserFromToken = (token) => {
+  if (!token) return { token };
+  
+  const decoded = decodeJWT(token);
+  if (!decoded) return { token };
+  
+  // Extract user info from decoded JWT
+  return {
+    token,
+    id: decoded.id,
+    role: decoded.role,
+    email: decoded.emailId || decoded.email,
+    // You might want to add firstName/lastName from your backend API
+    // For now, use email username part as display name
+    firstName: decoded.firstName || decoded.emailId?.split('@')[0] || 'User',
+  };
+};
+
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
@@ -8,16 +49,18 @@ export const registerUser = createAsyncThunk(
       const response = await axiosClient.post('/auth/register', userData);
       console.log('Register response:', response.data);
       
-      // Handle same response format as login
       if (response.data.token) {
-        // Store token in localStorage for persistence
-        localStorage.setItem('authToken', response.data.token);
-        return {
-          token: response.data.token,
-        };
+        const token = response.data.token;
+        localStorage.setItem('authToken', token);
+        
+        // Create user object from token
+        const user = createUserFromToken(token);
+        console.log('Created user from token:', user);
+        
+        return user;
       }
       
-      return response.data.user;
+      return response.data.user || response.data;
     } catch (error) {
       return rejectWithValue({
         message: error.response?.data?.message || error.message || 'Registration failed',
@@ -34,16 +77,24 @@ export const loginUser = createAsyncThunk(
       const response = await axiosClient.post('/auth/login', credentials);
       console.log('Login response:', response.data);
       
-      // Backend returns { message, token } instead of { user }
       if (response.data.token) {
-        // Store token in localStorage for persistence
-        localStorage.setItem('authToken', response.data.token);
-        return {
-          token: response.data.token,
-        };
+        const token = response.data.token;
+        localStorage.setItem('authToken', token);
+        
+        // Create user object from token
+        const user = createUserFromToken(token);
+        console.log('Created user from token:', user);
+        
+        return user;
       }
       
-      return response.data.user; // Fallback if backend changes
+      // Fallback if backend returns user object directly
+      if (response.data.user) {
+        localStorage.setItem('authToken', response.data.user.token);
+        return response.data.user;
+      }
+      
+      throw new Error('No token or user data received');
     } catch (error) {
       console.log('Login error:', error.response?.data);
       return rejectWithValue({
@@ -58,20 +109,19 @@ export const checkAuth = createAsyncThunk(
   'auth/check',
   async (_, { rejectWithValue }) => {
     try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No token found');
+      }
+      
+      // Verify token with backend
       const { data } = await axiosClient.get('/auth/check');
       
-      // If backend returns user data, store it
-      if (data.user) {
-        return data.user;
-      }
+      // Create user object from stored token
+      const user = createUserFromToken(token);
+      console.log('Check auth - created user:', user);
       
-      // If we just need to verify token exists
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        return { token };
-      }
-      
-      throw new Error('Not authenticated');
+      return user;
     } catch (error) {
       // Clear token if auth check fails
       localStorage.removeItem('authToken');
@@ -88,32 +138,30 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await axiosClient.post('/auth/logout');
-      // Clear token from localStorage
+    } catch (error) {
+      console.log('Logout API error (continuing anyway):', error.message);
+    } finally {
+    
       localStorage.removeItem('authToken');
       return null;
-    } catch (error) {
-      // Clear token even if logout fails
-      localStorage.removeItem('authToken');
-      return rejectWithValue({
-        message: error.response?.data?.message || error.message || 'Logout failed',
-        status: error.response?.status,
-      });
     }
   }
 );
 
-// Action to restore auth from localStorage on app load
 export const restoreAuth = createAsyncThunk(
   'auth/restore',
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('authToken');
-      if (token) {
-        // Verify token with backend
-        const { data } = await axiosClient.get('/auth/check');
-        return data.user || { token };
+      if (!token) {
+        throw new Error('No token found');
       }
-      throw new Error('No token found');
+      
+      // Create user object from token (without verifying with backend for speed)
+      const user = createUserFromToken(token);
+      console.log('Restored user from token:', user);
+      
+      return user;
     } catch (error) {
       localStorage.removeItem('authToken');
       return rejectWithValue({
@@ -130,12 +178,20 @@ const authSlice = createSlice({
     isAuthenticated: false,
     loading: false,
     error: null,
-    initialized: false, // Track if we've checked for existing auth
+    initialized: false,
   },
   reducers: {
     clearError: (state) => {
       state.error = null;
-    }
+    },
+    // Add a reducer to manually update user if needed
+    updateUser: (state, action) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+        // Also update localStorage if you store user data there
+        localStorage.setItem('userData', JSON.stringify(state.user));
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -147,7 +203,7 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         console.log('Register fulfilled, user:', action.payload);
         state.loading = false;
-        state.isAuthenticated = !!(action.payload && action.payload.token);
+        state.isAuthenticated = !!action.payload;
         state.user = action.payload;
         state.error = null;
       })
@@ -166,7 +222,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         console.log('Login fulfilled, user:', action.payload);
         state.loading = false;
-        state.isAuthenticated = !!(action.payload && action.payload.token);
+        state.isAuthenticated = !!action.payload;
         state.user = action.payload;
         state.error = null;
         console.log('isAuthenticated set to:', state.isAuthenticated);
@@ -195,7 +251,6 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.initialized = true;
-        // Don't set error for checkAuth - it's normal to be unauthenticated
       })
       
       // Restore Auth Cases
@@ -207,6 +262,7 @@ const authSlice = createSlice({
         state.isAuthenticated = !!action.payload;
         state.user = action.payload;
         state.initialized = true;
+        console.log('Auth restored, user:', action.payload);
       })
       .addCase(restoreAuth.rejected, (state) => {
         state.loading = false;
@@ -235,5 +291,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, updateUser } = authSlice.actions;
 export default authSlice.reducer;
