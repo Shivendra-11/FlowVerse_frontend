@@ -22,36 +22,43 @@ const Allproblem = () => {
     tag: 'all',
     status: 'all' 
   });
+  
+  // Current page state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [problemsPerPage] = useState(10);
+
+  const fetchProblems = async (page = 1) => {
+    try {
+      setLoading(true);
+      // Add pagination parameters to API call
+      const response = await axiosClient.get(`/problem/viewallproblems?page=${page}&limit=${problemsPerPage}`);
+      console.log('API Response for page', page, ':', response.data);
+  
+      const apiData = response.data;
+      
+      if (apiData.success && apiData.data) {
+        setProblems(apiData.data); 
+        setStats({
+          total: apiData.total || 0,
+          count: apiData.count || 0,
+          page: apiData.page || 1,
+          totalPages: apiData.totalPages || 1
+        });
+      } else {
+        setError('Invalid response format from server');
+        setProblems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching problems:', error);
+      setError('Failed to fetch problems');
+      setProblems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProblems = async () => {
-      try {
-        setLoading(true);
-        const response = await axiosClient.get('/problem/viewallproblems');
-        console.log('Full API Response:', response);
-    
-        const apiData = response.data;
-        
-        if (apiData.success && apiData.data) {
-          setProblems(apiData.data); 
-          setStats({
-            total: apiData.total || 0,
-            count: apiData.count || 0,
-            page: apiData.page || 1,
-            totalPages: apiData.totalPages || 1
-          });
-        } else {
-          setError('Invalid response format from server');
-          setProblems([]);
-        }
-      } catch (error) {
-        console.error('Error fetching problems:', error);
-        setError('Failed to fetch problems');
-        setProblems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchProblems(currentPage);
 
     const fetchSolvedProblems = async () => {
       if (!user) {
@@ -77,12 +84,10 @@ const Allproblem = () => {
       }
     };
 
-    fetchProblems();
     fetchSolvedProblems();
-  }, [user]);
+  }, [user, currentPage]); // Add currentPage to dependencies
 
- 
-
+  // Filter problems based on filters (client-side filtering for now)
   const filteredProblems = problems.filter(problem => {
     const difficultyMatch = filters.difficulty === 'all' || problem.difficulty === filters.difficulty;
     const tagMatch = filters.tag === 'all' || problem.tags === filters.tag;
@@ -90,13 +95,46 @@ const Allproblem = () => {
     let statusMatch = true;
     if (filters.status === 'solved') {
       statusMatch = solvedProblems.some(solvedProblem => {
-        // Check if solvedProblem has problemId or _id matches
         return solvedProblem.problemId === problem._id || solvedProblem._id === problem._id;
       });
     }
     
     return difficultyMatch && tagMatch && statusMatch;
   });
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > stats.totalPages) return;
+    setCurrentPage(pageNumber);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPageButtons = 5;
+    
+    if (stats.totalPages <= maxPageButtons) {
+      for (let i = 1; i <= stats.totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
+      let endPage = startPage + maxPageButtons - 1;
+      
+      if (endPage > stats.totalPages) {
+        endPage = stats.totalPages;
+        startPage = Math.max(1, endPage - maxPageButtons + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+    }
+    
+    return pageNumbers;
+  };
 
   if (loading) {
     return (
@@ -124,12 +162,11 @@ const Allproblem = () => {
 
   return (
     <div className="min-h-screen bg-base-200">
-
       {/* Main Content */}
       <div className="container mx-auto p-4 md:p-6">
         {/* Statistics Banner */}
         <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-6 mb-8 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold">{stats.total}</div>
               <div className="text-sm opacity-90">Total Problems</div>
@@ -141,6 +178,10 @@ const Allproblem = () => {
             <div className="text-center">
               <div className="text-3xl font-bold">{solvedProblems.length}</div>
               <div className="text-sm opacity-90">You Solved</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold">{currentPage}</div>
+              <div className="text-sm opacity-90">Current Page</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold">{stats.totalPages}</div>
@@ -205,7 +246,7 @@ const Allproblem = () => {
         </div>
 
         {/* Problems List */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-8">
           {filteredProblems.length === 0 ? (
             <div className="card bg-base-100 shadow-lg">
               <div className="card-body">
@@ -220,6 +261,7 @@ const Allproblem = () => {
             </div>
           ) : (
             filteredProblems.map((problem, index) => {
+              const globalIndex = (currentPage - 1) * problemsPerPage + index;
               const isSolved = solvedProblems.some(
                 solvedProblem => solvedProblem.problemId === problem._id || solvedProblem._id === problem._id
               );
@@ -236,7 +278,7 @@ const Allproblem = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                               </svg>
                             ) : (
-                              <span className="font-bold">{index + 1}</span>
+                              <span className="font-bold">{globalIndex + 1}</span>
                             )}
                           </div>
                         </div>
@@ -290,12 +332,136 @@ const Allproblem = () => {
           )}
         </div>
 
+        {/* Pagination - SHOW ONLY IF TOTAL PAGES > 1 */}
+        {stats.totalPages > 1 && (
+          <div className="card bg-base-100 shadow-lg mt-8">
+            <div className="card-body">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Page Info */}
+                <div className="text-sm text-gray-600">
+                  Page <span className="font-semibold">{currentPage}</span> of{' '}
+                  <span className="font-semibold">{stats.totalPages}</span>
+                  {' '}(Total: {stats.total} problems)
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="join">
+                  {/* Previous Button */}
+                  <button
+                    className="join-item btn btn-sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    « Previous
+                  </button>
+
+                  {/* Page Numbers - Show only if not too many */}
+                  {stats.totalPages <= 7 ? (
+                    // Show all page numbers if 7 or less
+                    Array.from({ length: stats.totalPages }, (_, i) => i + 1).map((number) => (
+                      <button
+                        key={number}
+                        className={`join-item btn btn-sm ${currentPage === number ? 'btn-active btn-primary' : ''}`}
+                        onClick={() => handlePageChange(number)}
+                      >
+                        {number}
+                      </button>
+                    ))
+                  ) : (
+                    // Show limited page numbers with ellipsis
+                    <>
+                      {currentPage > 3 && (
+                        <>
+                          <button
+                            className="join-item btn btn-sm"
+                            onClick={() => handlePageChange(1)}
+                          >
+                            1
+                          </button>
+                          {currentPage > 4 && (
+                            <button className="join-item btn btn-sm btn-disabled">...</button>
+                          )}
+                        </>
+                      )}
+
+                      {/* Show current page and neighbors */}
+                      {[currentPage - 1, currentPage, currentPage + 1]
+                        .filter(num => num >= 1 && num <= stats.totalPages)
+                        .map((number) => (
+                          <button
+                            key={number}
+                            className={`join-item btn btn-sm ${currentPage === number ? 'btn-active btn-primary' : ''}`}
+                            onClick={() => handlePageChange(number)}
+                          >
+                            {number}
+                          </button>
+                        ))}
+
+                      {currentPage < stats.totalPages - 2 && (
+                        <>
+                          {currentPage < stats.totalPages - 3 && (
+                            <button className="join-item btn btn-sm btn-disabled">...</button>
+                          )}
+                          <button
+                            className="join-item btn btn-sm"
+                            onClick={() => handlePageChange(stats.totalPages)}
+                          >
+                            {stats.totalPages}
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Next Button */}
+                  <button
+                    className="join-item btn btn-sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === stats.totalPages}
+                  >
+                    Next »
+                  </button>
+                </div>
+
+                {/* Page Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Go to:</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max={stats.totalPages}
+                      className="input input-bordered input-sm w-16"
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value);
+                        if (!isNaN(page) && page >= 1 && page <= stats.totalPages) {
+                          setCurrentPage(page);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handlePageChange(currentPage);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Debug Info - Remove in production */}
         <div className="mt-8 p-4 bg-gray-800 text-gray-300 rounded-lg text-sm">
           <div className="font-mono">
-            <div>Total Problems from API: {problems.length}</div>
+            <div><strong>Debug Information:</strong></div>
+            <div>Total Problems: {stats.total}</div>
+            <div>Problems per page: {problemsPerPage}</div>
+            <div>Current Page: {currentPage} of {stats.totalPages}</div>
+            <div>Problems on this page: {filteredProblems.length}</div>
             <div>Solved Problems: {solvedProblems.length}</div>
-            <div>Filtered Problems: {filteredProblems.length}</div>
+            <div>API Response: Total={stats.total}, Pages={stats.totalPages}</div>
           </div>
         </div>
       </div>
