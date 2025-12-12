@@ -10,7 +10,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import MainLayout from "./Mainlayout";
 import SimpleEditor from "./Components/SimlpeEditor";
-// import { useSelector } from 'react-redux';
+import Admin from "./Components/Admin";
+import AdminDelete from "./pages/AdminDelete";
+
 
 
 
@@ -44,6 +46,8 @@ function App() {
         <Route path="/problems" element={isAuthenticated ? <Allproblem /> : <Navigate to="/" />} />
          <Route path="/editor" element={isAuthenticated ? <SimpleEditor /> : <Navigate to="/login" />} />
          <Route path="/problem/:problemId" element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />}/>
+         <Route path="/admin" element={isAuthenticated && user?.role==='admin' ? <Admin /> : <Navigate to="/" />} />
+         <Route path="/admin/delete-problem" element={isAuthenticated && user?.role==='admin' ? <AdminDelete /> : <Navigate to="/" />}  />
       </Route>
 
     </Routes>

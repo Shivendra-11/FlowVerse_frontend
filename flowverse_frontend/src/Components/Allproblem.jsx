@@ -451,19 +451,6 @@ const Allproblem = () => {
             </div>
           </div>
         )}
-
-        {/* Debug Info - Remove in production */}
-        <div className="mt-8 p-4 bg-gray-800 text-gray-300 rounded-lg text-sm">
-          <div className="font-mono">
-            <div><strong>Debug Information:</strong></div>
-            <div>Total Problems: {stats.total}</div>
-            <div>Problems per page: {problemsPerPage}</div>
-            <div>Current Page: {currentPage} of {stats.totalPages}</div>
-            <div>Problems on this page: {filteredProblems.length}</div>
-            <div>Solved Problems: {solvedProblems.length}</div>
-            <div>API Response: Total={stats.total}, Pages={stats.totalPages}</div>
-          </div>
-        </div>
       </div>
     </div>
   );
