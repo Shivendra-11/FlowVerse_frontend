@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import Editor from '@monaco-editor/react';
 import { useParams } from 'react-router-dom';
 import axiosClient from "../utils/axiosClient"
+import FlowAi from './FlowAi';
 
 const ProblemPage = () => {
   const [problem, setProblem] = useState(null);
@@ -494,6 +495,12 @@ const ProblemPage = () => {
           >
             Submissions
           </button>
+           <button 
+            className={`tab ${activeLeftTab === 'FlowAi' ? 'tab-active' : ''}`}
+            onClick={() => setActiveLeftTab('FlowAi')}
+          >
+            FlowAI
+          </button>
         </div>
 
         {/* Left Content */}
@@ -546,6 +553,32 @@ const ProblemPage = () => {
               </div>
             </div>
           )}
+
+      {activeLeftTab === 'FlowAi' && (
+  <div className="prose max-w-none h-full">
+    <h2 className="text-xl font-bold mb-4">Chat with AI Assistant</h2>
+    <div className="h-[calc(100%-3rem)]">
+      <FlowAi problem={{
+        title: problem?.title || "",
+        description: problem?.description || "",
+        // Use visibleTestCases if available, otherwise empty array
+        visibleTestCases: problem?.visibleTestCases || problem?.testCases || [],
+        // Get start code for current selected language
+        startCode: (() => {
+          if (!problem?.startCode) return "";
+          const langCode = problem.startCode.find(sc => {
+            const lang = sc.language.toLowerCase();
+            if (lang === 'c++' && selectedLanguage === 'cpp') return true;
+            if (lang === 'java' && selectedLanguage === 'java') return true;
+            if (lang === 'javascript' && selectedLanguage === 'javascript') return true;
+            return false;
+          });
+          return langCode?.initialCode || problem.startCode[0]?.initialCode || "";
+        })()
+      }} />
+    </div>
+  </div>
+)}
 
           {activeLeftTab === 'solutions' && (
             <div>
