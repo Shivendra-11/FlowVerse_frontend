@@ -12,6 +12,8 @@ import MainLayout from "./Mainlayout";
 import SimpleEditor from "./Components/SimlpeEditor";
 import Admin from "./Components/Admin";
 import AdminDelete from "./pages/AdminDelete";
+import AdminVideoDelete from "./pages/AdminVideoDelete";
+import VideoUpload from "./pages/VideoUpload";
 
 
 
@@ -48,6 +50,8 @@ function App() {
          <Route path="/problem/:problemId" element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />}/>
          <Route path="/admin" element={isAuthenticated && user?.role==='admin' ? <Admin /> : <Navigate to="/" />} />
          <Route path="/admin/delete-problem" element={isAuthenticated && user?.role==='admin' ? <AdminDelete /> : <Navigate to="/" />}  />
+         <Route path="/admin/video-problem" element={isAuthenticated && user?.role==='admin' ? <AdminVideoDelete /> : <Navigate to="/" />}  />
+         <Route path="/video/upload/:problemId" element={isAuthenticated ? <VideoUpload /> : <Navigate to="/login" />} />
       </Route>
 
     </Routes>

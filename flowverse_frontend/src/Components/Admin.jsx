@@ -32,6 +32,15 @@ function Admin() {
       color: 'btn-error',
       bgColor: 'bg-error/10',
       route: '/admin/delete-problem'
+    },
+    {
+      id: 'Video',
+      title: 'Video Problem',
+      description: 'Manage video-based coding problems',
+      icon: Plus,
+      color: 'btn-success',
+      bgColor: 'bg-success/10',
+      route: '/admin/video-problem'
     }
   ];
 
